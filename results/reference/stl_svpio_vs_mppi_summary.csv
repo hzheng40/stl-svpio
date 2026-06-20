@@ -1,0 +1,11 @@
+config_id                      , method             , n_success, runtime_ms_mean    , runtime_ms_std    , robustness_mean     , robustness_std      , satisfaction_rate
+multiagent_button              , importance_sampling,       100, 2373.2143292424735 , 15.843897998678486, -4.483969433307648  , 0.42776941145908837 ,              0.0
+multiagent_button              , svgd               ,       100, 8780.033123103203  , 43.30182728551118 , 0.1726279664039612  , 0.001248004984387338,              1.0
+multiagent_corridor_6_agents   , importance_sampling,       100, 1356.9423917320091 ,  8.678542266904918, -9.366125087738038  , 0.19583635001479727 ,              0.0
+multiagent_corridor_6_agents   , svgd               ,       100, 4056.606222902192  , 42.59274515429265 , 0.14558720041066409 , 0.04213771183581033 ,              1.0
+multiagent_sync_goals          , importance_sampling,       100,  913.9631175878458 , 12.867154305380758, -5.931446528434753  , 0.04145504796035994 ,              0.0
+multiagent_sync_goals          , svgd               ,       100, 2715.284126875922  , 20.76626106940575 , 0.2332195347547531  , 0.02940454096049629 ,              1.0
+single_default                 , importance_sampling,       100,   64.95716907433234,  3.87003751307824 , -3.1370208168029787 , 0.43559187230038154 ,              0.0
+single_default                 , svgd               ,       100,  189.52347456943244, 12.569484925591775, -0.07346505381749012, 0.20374804052603096 ,              0.28
+single_visit_goals_long_horizon, importance_sampling,       100, 2811.4127578376792 ,  8.121192019487236, -4.036323018074036  , 0.46535750381025653 ,              0.0
+single_visit_goals_long_horizon, svgd               ,       100, 8289.80718611274   , 44.18277052130882 , 0.020127016794867815, 0.04181047773669817 ,              0.97

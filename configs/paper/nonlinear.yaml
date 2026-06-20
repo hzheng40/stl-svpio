@@ -1,0 +1,36 @@
+experiments:
+  panda_goal_reach:
+    horizon: 300
+    backend: mjx
+    num_particles: 10
+    num_stein_steps: 300
+    stein_step_size: 10.0
+    stein_step_anneal: exp
+    stein_step_final: 0.01
+    path_integral_temperature: 0.8
+    sampling_distribution: uniform
+    control_noise_sigma: 0.30
+    reach_radius: 0.06
+    stl_approx_method: logsumexp
+    stl_temperature: 100.0
+    reference_runtime_seconds: 634.8450644160621
+    reference_robustness: 0.0288931243121624
+  halfcheetah_backflip:
+    horizon: 200
+    backend: mjx
+    num_particles: 10
+    num_stein_steps: 300
+    stein_step_size: 0.001
+    stein_step_anneal: exp
+    stein_step_final: 0.00001
+    path_integral_temperature: 0.8
+    sampling_distribution: uniform
+    control_noise_sigma: 0.35
+    stl_approx_method: logsumexp
+    stl_temperature: 500.0
+    completion_style: terminal
+    rotation_tolerance: 0.40
+    final_window_steps: 8
+    reference_runtime_seconds: 593.215199
+    reference_robustness: 0.167646
+

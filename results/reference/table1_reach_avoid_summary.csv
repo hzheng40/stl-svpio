@@ -1,0 +1,8 @@
+method,num_particles,num_iterations,runtime_ms,robustness
+stl_svpio,10,20,19.152,0.108
+mppi,10,200,187.125,0.005
+svmpc,64,200,178.389,-0.098
+dpi,1024,200,194.492,0.179
+stlcg_gradient_descent,,200,926.704,-0.068
+milp,,,324.578,0.495
+

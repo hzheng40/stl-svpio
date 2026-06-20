@@ -1,0 +1,33 @@
+[project]
+name = "stl-svpio"
+version = "0.1.0"
+description = "Reproduction code for STL-SVPIO: Signal Temporal Logic guided Stein Variational Path Integral Optimization"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "brax>=0.13.0",
+    "chex>=0.1.91",
+    "distrax>=0.1.7",
+    "jax[cuda13]>=0.8.0",
+    "matplotlib>=3.10.0",
+    "mediapy>=1.2.4",
+    "mujoco>=3.3.7",
+    "mujoco-mjx>=3.3.7",
+    "numpy>=2.0.0",
+    "pillow>=10.0.0",
+    "pyyaml>=6.0.0",
+    "stljax>=1.1.3",
+    "tqdm>=4.67.1",
+]
+
+[project.scripts]
+stl-svpio = "stl_svpio.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.8,<0.10.0"]
+build-backend = "uv_build"

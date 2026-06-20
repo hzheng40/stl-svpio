@@ -1,0 +1,132 @@
+presets:
+  - id: single_default
+    scene_seed: 0
+    args:
+      dt: 0.1
+      episode_steps: 20
+      horizon: 20
+      noise_sigma: 0.3
+      num_samples: 64
+      sampling_mode: uniform
+      scene: constructed_pointmass_diag
+      stl_approx_method: "true"
+      stl_temperature: null
+      svgd_iters: 200
+      svgd_selection_mode: best
+      svgd_step_anneal: exp
+      svgd_step_final: 0.1
+      svgd_step_size: 500.0
+      task: single_default
+      temperature: 1.0
+
+  - id: single_visit_goals_long_horizon
+    scene_seed: 0
+    args:
+      dt: 0.01
+      episode_steps: 600
+      horizon: 600
+      noise_sigma: 1.0
+      num_obstacles: 20
+      num_samples: 64
+      num_zones: 5
+      sampling_mode: uniform
+      scene: random
+      stl_approx_method: "true"
+      stl_temperature: null
+      svgd_iters: 300
+      svgd_repulsion_anneal: none
+      svgd_repulsion_coef: 1.0
+      svgd_resample_ess_threshold: 0.5
+      svgd_resample_jitter_scale: 0.0
+      svgd_selection_mode: best
+      svgd_step_anneal: exp
+      svgd_step_final: 5.0
+      svgd_step_size: 500.0
+      task: single_visit_goals
+      temperature: 1.0
+      landmark_sampling_mode: joint
+
+  - id: multiagent_button
+    scene_seed: 0
+    args:
+      dt: 0.01
+      episode_steps: 300
+      horizon: 300
+      landmark_sampling_mode: sequential
+      layout_mode: random
+      noise_sigma: 0.5
+      num_agents: 2
+      num_obstacles: 10
+      num_samples: 64
+      num_zones: 3
+      sampling_mode: truncated_gaussian
+      scene: random
+      stl_approx_method: "true"
+      stl_temperature: null
+      svgd_iters: 300
+      svgd_repulsion_anneal: none
+      svgd_repulsion_coef: 1.0
+      svgd_resample_ess_threshold: 0.5
+      svgd_resample_jitter_scale: 0.0
+      svgd_selection_mode: best
+      svgd_step_anneal: exp
+      svgd_step_final: 1.0
+      svgd_step_size: 500.0
+      task: multiagent_button
+      temperature: 0.5
+
+  - id: multiagent_sync_goals
+    scene_seed: 0
+    args:
+      dt: 0.01
+      episode_steps: 200
+      horizon: 200
+      noise_sigma: 0.5
+      num_obstacles: 0
+      num_samples: 64
+      num_zones: 9
+      sampling_mode: uniform
+      scene: random
+      stl_approx_method: logsumexp
+      stl_temperature: 1000.0
+      svgd_iters: 300
+      svgd_repulsion_anneal: none
+      svgd_repulsion_coef: 1.0
+      svgd_resample_ess_threshold: 0.5
+      svgd_resample_jitter_scale: 0.0
+      svgd_selection_mode: best
+      svgd_step_anneal: exp
+      svgd_step_final: 1.0
+      svgd_step_size: 500.0
+      task: multiagent_sync_goals
+      temperature: 1.0
+
+  - id: multiagent_corridor_6_agents
+    scene_seed: 0
+    args:
+      agent_collision_radius: 0.1
+      corridor_half_extent: 0.8
+      dt: 0.01
+      episode_steps: 300
+      horizon: 300
+      layout_mode: random
+      noise_sigma: 0.5
+      num_agents: 6
+      num_obstacles: 0
+      num_samples: 128
+      num_zones: 1
+      sampling_mode: truncated_gaussian
+      scene: random
+      stl_approx_method: logsumexp
+      stl_temperature: 600.0
+      svgd_iters: 300
+      svgd_repulsion_anneal: none
+      svgd_repulsion_coef: 1.0
+      svgd_resample_ess_threshold: 0.5
+      svgd_resample_jitter_scale: 0.0
+      svgd_selection_mode: best
+      svgd_step_anneal: exp
+      svgd_step_final: 0.1
+      svgd_step_size: 2000.0
+      task: multiagent_corridor
+      temperature: 0.5

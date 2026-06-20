@@ -1,0 +1,13 @@
+artifacts/
+outputs/
+multirun/
+wandb/
+.venv/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+

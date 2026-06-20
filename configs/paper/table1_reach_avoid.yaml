@@ -1,0 +1,58 @@
+task_id: single_default
+description: "Table I / Figure 2 single-agent reach-avoid benchmark."
+base:
+  dt: 0.1
+  episode_steps: 20
+  horizon: 20
+  scene: constructed_pointmass_diag
+  seed: 0
+  task: single_default
+  stl_approx_method: logsumexp
+  stl_temperature: 200.0
+methods:
+  stl_svpio:
+    num_samples: 10
+    sampling_mode: truncated_gaussian
+    noise_sigma: 1.0
+    temperature: 0.8
+    svgd_iters: 20
+    svgd_selection_mode: best
+    svgd_step_anneal: exp
+    svgd_step_final: 0.1
+    svgd_step_size: 500.0
+  mppi:
+    num_samples: 10
+    sampling_mode: truncated_gaussian
+    noise_sigma: 1.0
+    temperature: 0.8
+    svgd_iters: 200
+    svgd_selection_mode: best
+    svgd_step_anneal: exp
+    svgd_step_final: 2.0
+    svgd_step_size: 800.0
+  svmpc:
+    num_samples: 64
+    sampling_mode: uniform
+    noise_sigma: 0.3
+    temperature: 1.0
+    svgd_iters: 200
+    svgd_step_size: 0.06
+    stl_temperature: null
+  dpi:
+    num_samples: 1024
+    sampling_mode: truncated_gaussian
+    noise_sigma: 0.3
+    temperature: 0.8
+    svgd_iters: 200
+    dpi_iters: 200
+    dpi_shrink_factor: 0.5
+    dpi_min_temperature: 0.01
+    stl_temperature: null
+  stlcg_gradient_descent:
+    num_samples: 1
+    sampling_mode: uniform
+    noise_sigma: 0.3
+    stl_gd_iters: 200
+    stl_gd_step_size: 0.05
+    stl_temperature: null
+

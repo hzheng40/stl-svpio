@@ -1,0 +1,19 @@
+<mujoco model="panda scene three cubes">
+  <include file="mjx_scene.xml"/>
+
+  <worldbody>
+    <body name="box1" pos="0.45 -0.18 0.03">
+      <geom type="sphere" name="box1" size="0.06" rgba="0.1 0.8 0.2 1" contype="0" conaffinity="0"/>
+    </body>
+    <body name="box2" pos="0.7 0.0 0.2">
+      <geom type="sphere" name="box2" size="0.06" rgba="0.95 0.65 0.1 1" contype="0" conaffinity="0"/>
+    </body>
+    <body mocap="true" name="mocap_target">
+      <geom type="box" size="0.02 0.02 0.03" rgba="1 0 0 0.2" contype="0" conaffinity="0"/>
+    </body>
+  </worldbody>
+
+  <keyframe>
+    <key name="home" qpos="0 0.3 0 -1.57079 0 2.0 -0.7853 0.04 0.04" ctrl="0 0.3 0 -1.57079 0 2.0 -0.7853 0.04"/>
+  </keyframe>
+</mujoco>
