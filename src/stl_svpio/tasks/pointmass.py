@@ -5,7 +5,8 @@ import statistics
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from functools import partial
+from typing import Any, Callable, Iterable, Optional
 
 import jax
 import jax.numpy as jnp
@@ -13,6 +14,7 @@ from stljax.formula import Always, And, Eventually, Predicate
 
 from stl_svpio._legacy_mppi import MPPIConfig, MPPIController, make_stl_cost_fn
 from stl_svpio.baselines.stlcg_gd import STLCGGradientDescentConfig, run_stlcg_gradient_descent
+from stl_svpio.baselines.mppi import make_reach_avoid_heuristic_cost
 from stl_svpio.envs import MultiAgentPointMass2DEnv, PointMass2DEnv
 from stl_svpio.specifications import (
     pointmass_full_task_spec,
@@ -57,6 +59,7 @@ class PointMassTrialResult:
     satisfied: bool
     num_particles: int
     num_iterations: int
+    true_robustness: float = float("nan")
 
 
 def _conjunction(formulas):
@@ -332,23 +335,50 @@ def run_pointmass_trial(
     seed: int,
     sampling_seed: Optional[int] = None,
     jit: bool = True,
+    warmup: bool = False,
 ) -> PointMassTrialResult:
+    run = prepare_pointmass_trial(task_id, method, config, seed=seed, jit=jit)
+    sampling_seed = seed + 1000 if sampling_seed is None else int(sampling_seed)
+    return run(sampling_seed, warmup=warmup)
+
+
+def prepare_pointmass_trial(
+    task_id: str,
+    method: str,
+    config: dict[str, Any],
+    seed: int,
+    jit: bool = True,
+) -> Callable[..., PointMassTrialResult]:
+    """Build one fixed scene and reuse its optimizer across independent sampling seeds."""
     cfg = dict(config)
     cfg["task"] = cfg.get("task", task_id)
-    sampling_seed = seed + 1000 if sampling_seed is None else int(sampling_seed)
     problem = build_pointmass_problem(cfg, seed=seed)
     approx_method = str(cfg.get("stl_approx_method", "true"))
     stl_temperature = cfg.get("stl_temperature", None)
+    large_number = cfg.get("stl_large_number", None)
+    robustness_kwargs = {} if large_number is None else {"large_number": large_number}
+    if approx_method != "true" and stl_temperature is None:
+        raise ValueError(f"{method}: {approx_method} requires a non-null stl_temperature")
 
     if method in {"stlcg_gradient_descent", "stl_gd"}:
-        init = jax.random.uniform(
-            jax.random.PRNGKey(sampling_seed),
-            shape=(problem.horizon, problem.control_dim),
-            minval=problem.control_low,
-            maxval=problem.control_high,
+        sampler = MPPIController(
+            MPPIConfig(
+                horizon=problem.horizon, num_samples=1, control_dim=problem.control_dim,
+                sampling_mode=str(cfg.get("sampling_mode", "uniform")),
+                control_low=problem.control_low, control_high=problem.control_high,
+                control_noise_sigma=problem.control_noise_sigma,
+            ),
+            dynamics_fn=problem.dynamics_fn,
+            cost_fn=make_stl_cost_fn(problem.stl_specification, approx_method=approx_method,
+                                     temperature=stl_temperature, large_number=large_number),
         )
-        start = time.perf_counter()
-        controls, _, _ = run_stlcg_gradient_descent(
+
+        def initialize(key):
+            state = sampler.init_state(key)
+            controls = sampler._sample_control_sequences(key, state.mean_controls)[0]
+            return (sampler._apply_control_limits(controls),)
+
+        solve = partial(run_stlcg_gradient_descent,
             STLCGGradientDescentConfig(
                 num_steps=int(cfg.get("stl_gd_iters", cfg.get("svgd_iters", 200))),
                 step_size=float(cfg.get("stl_gd_step_size", cfg.get("svgd_step_size", 0.05))),
@@ -356,15 +386,16 @@ def run_pointmass_trial(
                 control_high=problem.control_high,
                 grad_clip_norm=cfg.get("stl_gd_grad_clip_norm", None),
             ),
-            init,
-            problem.initial_state,
-            problem.dynamics_fn,
-            problem.stl_specification,
+            initial_state=problem.initial_state,
+            dynamics_fn=problem.dynamics_fn,
+            stl_formula=problem.stl_specification,
             approx_method=approx_method,
             temperature=stl_temperature,
+            large_number=large_number,
         )
-        jax.block_until_ready(controls)
-        runtime_ms = (time.perf_counter() - start) * 1000.0
+        if jit:
+            solve = jax.jit(solve)
+        select_controls = lambda output: output[0]
         num_iterations = int(cfg.get("stl_gd_iters", cfg.get("svgd_iters", 200)))
         num_particles = 1
     else:
@@ -387,6 +418,7 @@ def run_pointmass_trial(
             svgd_repulsion_anneal=str(cfg.get("svgd_repulsion_anneal", "none")),
             svgd_repulsion_final=cfg.get("svgd_repulsion_final", None),
             svgd_selection_mode=str(cfg.get("svgd_selection_mode", "best")),
+            record_svgd_history=bool(cfg.get("record_svgd_history", False)),
             svgd_resample_enabled=bool(cfg.get("svgd_resample_enabled", False)),
             svgd_resample_ess_threshold=float(cfg.get("svgd_resample_ess_threshold", 0.5)),
             svgd_resample_temperature=cfg.get("svgd_resample_temperature", None),
@@ -400,34 +432,51 @@ def run_pointmass_trial(
             dpi_min_temperature=float(cfg.get("dpi_min_temperature", 1e-3)),
             dpi_augmented_mode=str(cfg.get("dpi_augmented_mode", "implicit")),
         )
-        cost_fn = make_stl_cost_fn(problem.stl_specification, approx_method=approx_method, temperature=stl_temperature)
+        cost_mode = cfg.get("cost_mode", "stl")
+        if cost_mode == "heuristic_reach_avoid":
+            if method != "mppi" or cfg["task"] != "single_default":
+                raise ValueError("The reach-avoid heuristic is only supported for Table I MPPI")
+            cost_fn = make_reach_avoid_heuristic_cost(
+                problem.env.goal_square_center, problem.env.obstacles.centers, problem.env.obstacles.radii,
+                **{name: cfg[f"heuristic_{name}"] for name in (
+                    "stage_goal_weight", "stage_obstacle_weight", "terminal_goal_weight",
+                    "terminal_obstacle_weight", "margin",
+                ) if f"heuristic_{name}" in cfg},
+            )
+        elif cost_mode == "stl":
+            cost_fn = make_stl_cost_fn(problem.stl_specification, approx_method=approx_method, temperature=stl_temperature, large_number=large_number)
+        else:
+            raise ValueError(f"Unsupported cost_mode: {cost_mode}")
         controller = MPPIController(config=controller_cfg, dynamics_fn=problem.dynamics_fn, cost_fn=cost_fn)
-        state = controller.init_state(jax.random.PRNGKey(sampling_seed))
-        command = jax.jit(controller.command) if jit else controller.command
-        start = time.perf_counter()
-        _, _, info = command(state, problem.initial_state)
-        jax.block_until_ready(info["selected_controls"])
-        runtime_ms = (time.perf_counter() - start) * 1000.0
-        controls = info["selected_controls"]
+        solve = jax.jit(controller.command) if jit else controller.command
+        initialize = lambda key: (controller.init_state(key), problem.initial_state)
+        select_controls = lambda output: output[2]["selected_controls"]
         num_iterations = int(controller_cfg.dpi_iters if update_mode == "deterministic_pi" and controller_cfg.dpi_iters else controller_cfg.svgd_iters)
         num_particles = int(controller_cfg.num_samples)
 
-    trace = _final_trace(problem, controls[: problem.episode_steps])
-    robustness = float(
-        problem.stl_specification.robustness(trace, approx_method=approx_method, temperature=stl_temperature)
-    )
-    satisfied = bool(problem.stl_specification.eval(trace))
-    return PointMassTrialResult(
-        task_id=task_id,
-        method=method,
-        seed=seed,
-        sampling_seed=sampling_seed,
-        runtime_ms=float(runtime_ms),
-        robustness=robustness,
-        satisfied=satisfied,
-        num_particles=num_particles,
-        num_iterations=num_iterations,
-    )
+    def run(sampling_seed: int, warmup: bool = False) -> PointMassTrialResult:
+        inputs = initialize(jax.random.PRNGKey(sampling_seed))
+        if warmup:
+            jax.block_until_ready(solve(*inputs))
+        start = time.perf_counter()
+        output = solve(*inputs)
+        controls = select_controls(output)
+        jax.block_until_ready(controls)
+        runtime_ms = (time.perf_counter() - start) * 1000.0
+
+        trace = _final_trace(problem, controls[: problem.episode_steps])
+        robustness = float(
+            problem.stl_specification.robustness(trace, approx_method=approx_method, temperature=stl_temperature, **robustness_kwargs)
+        )
+        satisfied = bool(problem.stl_specification.eval(trace))
+        return PointMassTrialResult(
+            task_id=task_id, method=method, seed=seed, sampling_seed=int(sampling_seed),
+            runtime_ms=float(runtime_ms), robustness=robustness, satisfied=satisfied,
+            num_particles=num_particles, num_iterations=num_iterations,
+            true_robustness=float(problem.stl_specification.robustness(trace, approx_method="true", **robustness_kwargs)),
+        )
+
+    return run
 
 
 def summarize_trials(results: Iterable[PointMassTrialResult]) -> list[dict[str, Any]]:
@@ -469,4 +518,3 @@ def write_summary_csv(rows: list[dict[str, Any]], path: Path) -> None:
         writer = csv.DictWriter(f, fieldnames=columns)
         writer.writeheader()
         writer.writerows(rows)
-

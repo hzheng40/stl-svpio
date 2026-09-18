@@ -1,0 +1,116 @@
+{
+  "artifacts": {
+    "animation_out": "artifacts/benchmarks/pointmass_single_default_three_way_compare_iters.gif",
+    "plot_out": "artifacts/benchmarks/pointmass_single_default_three_way_compare.png",
+    "snapshot_collage_out": "artifacts/benchmarks/pointmass_single_default_three_way_compare_snapshots_collage.png",
+    "snapshot_paths": [
+      "artifacts/benchmarks/pointmass_single_default_three_way_compare_snapshots/frame_0.png",
+      "artifacts/benchmarks/pointmass_single_default_three_way_compare_snapshots/frame_19.png",
+      "artifacts/benchmarks/pointmass_single_default_three_way_compare_snapshots/frame_199.png"
+    ],
+    "snapshot_steps": "0,19,199"
+  },
+  "params": {
+    "dpi_preset_file": "artifacts/benchmark_pointmass_working_configs_dpi.yaml",
+    "dt": 0.1,
+    "episode_steps": 20,
+    "heuristic_margin": 0.0,
+    "heuristic_stage_goal_weight": 0.1,
+    "heuristic_stage_obstacle_weight": 25.0,
+    "heuristic_terminal_goal_weight": 8.0,
+    "heuristic_terminal_obstacle_weight": 100.0,
+    "horizon": 20,
+    "importance_sampling_mode": "truncated_gaussian",
+    "noise_sigma": 0.3,
+    "num_samples": 10,
+    "preset_id": "single_default",
+    "sampling_mode": "uniform",
+    "stl_approx_method": "logsumexp",
+    "stl_temperature": 50.0,
+    "stlgd_preset_file": "artifacts/benchmark_pointmass_working_configs_stlgd.yaml",
+    "svgd_iters": 20,
+    "svgd_step_anneal": "exp",
+    "svgd_step_final": 10.0,
+    "svgd_step_size": 500.0,
+    "svmpc_preset_file": "artifacts/benchmark_pointmass_working_configs_svmpc.yaml",
+    "temperature": 0.8
+  },
+  "results": [
+    {
+      "command_runtime_ms": 19.15235398337245,
+      "final_stl_robustness": 0.10097929835319519,
+      "final_true_stl_robustness": 0.10803401470184326,
+      "final_xy": [
+        4.329773902893066,
+        3.742389678955078
+      ],
+      "name": "svgd_stl",
+      "plot_samples": false,
+      "stl_satisfied": true
+    },
+    {
+      "command_runtime_ms": 187.12469702586532,
+      "final_stl_robustness": 0.0051309335976839066,
+      "final_true_stl_robustness": 0.021822333335876465,
+      "final_xy": [
+        3.5254807472229004,
+        3.854839324951172
+      ],
+      "name": "importance_sampling_heuristic",
+      "plot_samples": false,
+      "stl_satisfied": true
+    },
+    {
+      "command_runtime_ms": 178.38947800919414,
+      "final_stl_robustness": -0.09811592102050781,
+      "final_true_stl_robustness": -0.09811592102050781,
+      "final_xy": [
+        4.155179500579834,
+        3.401884078979492
+      ],
+      "name": "svgd_fd",
+      "plot_samples": false,
+      "stl_satisfied": false
+    },
+    {
+      "command_runtime_ms": 194.49230702593923,
+      "final_stl_robustness": 0.17887413501739502,
+      "final_true_stl_robustness": 0.17887413501739502,
+      "final_xy": [
+        3.6913576126098633,
+        3.698920726776123
+      ],
+      "name": "deterministic_pi",
+      "plot_samples": false,
+      "stl_satisfied": true
+    },
+    {
+      "command_runtime_ms": 926.7036090604961,
+      "final_stl_robustness": -0.0682075023651123,
+      "final_true_stl_robustness": -0.0682075023651123,
+      "final_xy": [
+        3.986248731613159,
+        3.4317924976348877
+      ],
+      "name": "stl_gd",
+      "plot_samples": false,
+      "stl_satisfied": false
+    },
+    {
+      "command_runtime_ms": NaN,
+      "final_stl_robustness": 0.48627009987831116,
+      "final_true_stl_robustness": 0.4949989318847656,
+      "final_xy": [
+        4.005001068115234,
+        3.9949989318847656
+      ],
+      "name": "milp",
+      "plot_samples": false,
+      "stl_satisfied": true
+    }
+  ],
+  "sampling_seed": 1000,
+  "scene": "constructed_pointmass_diag",
+  "seed": 0,
+  "task": "single_default"
+}

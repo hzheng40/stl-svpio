@@ -2,7 +2,7 @@
 
 | Paper result | Task/config | Command | Reference output |
 | --- | --- | --- | --- |
-| Table I / Figure 2 | Single-agent reach-avoid | `uv run stl-svpio table1` | `results/reference/table1_reach_avoid_summary.csv` |
+| Table I / Figure 2 | Single-agent reach-avoid | `JAX_PLATFORMS=cuda uv run stl-svpio table1` | `results/reference/table1_reach_avoid_summary.csv` |
 | Figure 3 Long Horizon | `single_visit_goals_long_horizon` | `uv run stl-svpio figure3` | `results/reference/figure3_pointmass_summary.csv` |
 | Figure 3 Button | `multiagent_button` | `uv run stl-svpio figure3` | `results/reference/figure3_pointmass_summary.csv` |
 | Figure 3 Sync Goals | `multiagent_sync_goals` | `uv run stl-svpio figure3` | `results/reference/figure3_pointmass_summary.csv` |
@@ -11,6 +11,11 @@
 | Figure 9 | Half-Cheetah backflip | `uv run stl-svpio nonlinear --experiment halfcheetah_backflip --run` | `results/reference/halfcheetah_backflip_results.json` |
 
 ## Point-Mass Baselines
+
+Table I reproduction requires CUDA; CPU execution does not reproduce the
+reported STL-SVPIO result. The runner reports both exact and smoothed robustness.
+See [reproducibility notes](reproducibility.md) for the RTX 3070/CPU example
+and the metric definitions.
 
 Figure 3 compares:
 
@@ -22,7 +27,11 @@ Figure 3 compares:
 
 MILP runs use PyTeLo for STL parsing/validation and Gurobi for the MILP solve. The paper setting gives each task a 10 hour budget (`--time-limit-sec 36000`) and stops at the first feasible solution (`MIPFocus=1`, `SolutionLimit=1`) rather than proving global optimality.
 
-The paper reports 100 random seeds for stochastic point-mass methods. The default `figure3` command follows that convention.
+The paper reports 100 random sampling seeds for stochastic point-mass methods.
+The default `figure3` command uses sampling seeds 0-99 and holds each preset's
+scene seed fixed. `--seed-offset` affects sampling only. See
+[reproducibility notes](reproducibility.md#figure-3-fixed-scenes-and-sampling-seeds)
+for the scene-seed table and CUDA command.
 
 ## Nonlinear Tasks
 

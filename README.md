@@ -21,7 +21,7 @@ The main package is `stl_svpio`; the console command is `stl-svpio`.
 ## Quick Smoke Runs
 
 ```bash
-uv run stl-svpio table1 --methods stl_svpio --no-jit
+JAX_PLATFORMS=cuda uv run stl-svpio table1 --methods stl_svpio
 uv run stl-svpio figure3 --quick --methods stl_svpio --tasks multiagent_sync_goals --no-jit
 uv run stl-svpio nonlinear
 ```
@@ -31,13 +31,17 @@ uv run stl-svpio nonlinear
 Reach-avoid Table I / Figure 2:
 
 ```bash
-uv run stl-svpio table1
+CUDA_VISIBLE_DEVICES=0 JAX_PLATFORMS=cuda uv run --frozen stl-svpio table1
 ```
 
-Figure 3 point-mass benchmark over 100 seeds:
+Table I reproduction requires a CUDA GPU. CPU execution does not reproduce
+the reported STL-SVPIO result. See [reproducibility notes](docs/reproducibility.md)
+for the RTX 3070/CPU example and robustness metric definitions.
+
+Figure 3 point-mass benchmark over 100 sampling seeds, with preset scenes fixed:
 
 ```bash
-uv run stl-svpio figure3
+CUDA_VISIBLE_DEVICES=0 JAX_PLATFORMS=cuda uv run --frozen stl-svpio figure3
 ```
 
 Nonlinear MJX tasks:

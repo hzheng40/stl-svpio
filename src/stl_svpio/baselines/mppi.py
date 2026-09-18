@@ -9,6 +9,26 @@ import jax.numpy as jnp
 from stl_svpio._legacy_mppi import MPPIConfig, MPPIController
 
 
+def make_reach_avoid_heuristic_cost(
+    goal_center, obstacle_centers, obstacle_radii, *,
+    stage_goal_weight=0.1, stage_obstacle_weight=25.0,
+    terminal_goal_weight=8.0, terminal_obstacle_weight=100.0, margin=0.0,
+):
+    """Stage and terminal distance costs from the original Table I comparison."""
+    def single_cost(trace):
+        positions = trace[:, :2]
+        goal_distance = jnp.linalg.norm(positions - goal_center, axis=-1)
+        distance = jnp.linalg.norm(positions[:, None, :] - obstacle_centers, axis=-1)
+        violation = jnp.sum(jnp.maximum(obstacle_radii + margin - distance, 0.0), axis=-1)
+        return (
+            jnp.sum(stage_goal_weight * goal_distance + stage_obstacle_weight * violation)
+            + terminal_goal_weight * goal_distance[-1]
+            + terminal_obstacle_weight * violation[-1]
+        )
+
+    return jax.vmap(single_cost)
+
+
 @dataclass
 class MPPIBaselineConfig:
     horizon: int

@@ -30,6 +30,7 @@ def run_stlcg_gradient_descent(
     stl_formula,
     approx_method: str = "true",
     temperature: Optional[float] = None,
+    large_number: Optional[float] = None,
 ) -> tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]:
     """Direct gradient descent on J_phi = -rho_phi, the STLCG++-style baseline."""
 
@@ -43,7 +44,8 @@ def run_stlcg_gradient_descent(
 
     def loss_fn(u_seq: jnp.ndarray):
         trace = rollout(u_seq)
-        robustness = stl_formula.robustness(trace, approx_method=approx_method, temperature=temperature)
+        kwargs = {} if large_number is None else {"large_number": large_number}
+        robustness = stl_formula.robustness(trace, approx_method=approx_method, temperature=temperature, **kwargs)
         robustness = jnp.nan_to_num(robustness, nan=-1e6, posinf=1e6, neginf=-1e6)
         return -robustness, trace
 
@@ -61,4 +63,3 @@ def run_stlcg_gradient_descent(
     iter_ids = jnp.arange(config.num_steps, dtype=jnp.int32)
     final_controls, (trace_history, loss_history) = jax.lax.scan(step, initial_controls, iter_ids)
     return final_controls, trace_history, loss_history
-

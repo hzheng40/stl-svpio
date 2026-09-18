@@ -154,6 +154,7 @@ def make_stl_cost_fn(
     stl_formula,
     approx_method: str = "true",
     temperature: Optional[float] = None,
+    large_number: Optional[float] = None,
 ) -> Callable[[jnp.ndarray], jnp.ndarray]:
     """Create batched MPPI cost from an STL formula.
 
@@ -164,10 +165,12 @@ def make_stl_cost_fn(
     """
 
     def _single_cost(trace: jnp.ndarray) -> jnp.ndarray:
+        kwargs = {} if large_number is None else {"large_number": large_number}
         return -stl_formula.robustness(
             trace,
             approx_method=approx_method,
             temperature=temperature,
+            **kwargs,
         )
 
     return jax.vmap(_single_cost)
