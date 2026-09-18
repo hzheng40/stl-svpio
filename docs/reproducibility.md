@@ -68,6 +68,30 @@ range, presets, effective configs, backend, and package versions. Completed
 trials are saved incrementally. `--quick` reduces the workload for a smoke run
 and should not be compared with the 100-seed reference.
 
+### STL-SVPIO Reference Check
+
+A full run on an NVIDIA GeForce RTX 3070 with JAX/JAXlib 0.10.1 and
+stljax 1.1.3 reproduced the original benchmark outcomes for all four tasks
+using sampling seeds 0 through 99 and the fixed scenes above:
+
+| Task | Reference mean robustness | RTX 3070 mean robustness | Satisfaction, reference / RTX 3070 |
+| --- | ---: | ---: | ---: |
+| Long-horizon clutter | 0.020127016795 | 0.020127016795 | 97% / 97% |
+| Button ordering | 0.172627966404 | 0.172627966255 | 100% / 100% |
+| Synchronized goals | 0.233219534755 | 0.233219534755 | 100% / 100% |
+| Corridor queuing | 0.145587200411 | 0.145587200411 | 100% / 100% |
+
+These are the configured robustness metrics used by the original Figure 3
+benchmark, compared with `results/reference/figure3_pointmass_summary.csv`.
+Against the original per-trial records, every satisfaction outcome matched.
+Per-seed robustness matched exactly for long-horizon clutter, synchronized
+goals, and corridor queuing; the maximum absolute difference for button
+ordering was `1.49e-8`. This is an observed reproduction on this GPU/software
+combination, not a guarantee of bitwise equality on other systems.
+
+The full 100-seed check here covers STL-SVPIO only, not the baseline aggregates
+or MILP. Runtime depends on hardware and is not an exact-match criterion.
+
 ## What Seeds Control
 
 JAX uses explicit PRNG keys. Given the same code path and backend behavior, the random samples generated from `jax.random` keys are deterministic. See the official JAX random documentation:
