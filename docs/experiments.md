@@ -8,7 +8,7 @@
 | Figure 3 Sync Goals | `multiagent_sync_goals` | `uv run stl-svpio figure3` | `results/reference/figure3_pointmass_summary.csv` |
 | Figure 3 Corridor | `multiagent_corridor_6_agents` | `uv run stl-svpio figure3` | `results/reference/figure3_pointmass_summary.csv` |
 | Figure 8 | Panda goal reach | `uv run stl-svpio nonlinear --experiment panda_goal_reach --run` | `results/reference/panda_goal_reach_results.json` |
-| Figure 9 | Half-Cheetah backflip | `uv run stl-svpio nonlinear --experiment halfcheetah_backflip --run` | `results/reference/halfcheetah_backflip_results.json` |
+| Figure 9 | Half-Cheetah backflip (MJX) | `CUDA_VISIBLE_DEVICES=0 JAX_PLATFORMS=cuda uv run --frozen stl-svpio nonlinear --experiment halfcheetah_backflip --run` | `results/reference/halfcheetah_backflip_results.json` |
 
 ## Point-Mass Baselines
 
@@ -35,7 +35,10 @@ for the scene-seed table and CUDA command.
 
 ## Nonlinear Tasks
 
-The nonlinear tasks use MuJoCo MJX through JAX. They are intentionally separated from normal imports because they require GPU/MuJoCo setup and are long-running.
+Both nonlinear tasks use MuJoCo MJX. The Half-Cheetah launcher
+passes the settings in `configs/paper/nonlinear.yaml` explicitly. These tasks
+are separated from normal imports because they require GPU/MuJoCo setup and
+are long-running. See [Half-Cheetah command details](reproducibility.md#half-cheetah-mjx-command).
 
 Reference values from the paper run:
 

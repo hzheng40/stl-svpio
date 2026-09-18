@@ -18,11 +18,20 @@ experiments:
   halfcheetah_backflip:
     horizon: 200
     backend: mjx
+    seed: 0
+    n_frames: 1
+    mj_solver: cg
+    mj_iterations: 1
+    mj_ls_iterations: 1
     num_particles: 10
     num_stein_steps: 300
     stein_step_size: 0.001
     stein_step_anneal: exp
     stein_step_final: 0.00001
+    stein_repulsion_coef: 0.0
+    stein_repulsion_anneal: none
+    stein_gradient_mode: reverse
+    jit_command: false
     path_integral_temperature: 0.8
     sampling_distribution: uniform
     control_noise_sigma: 0.35
@@ -31,6 +40,10 @@ experiments:
     completion_style: terminal
     rotation_tolerance: 0.40
     final_window_steps: 8
+    target_rotation: 6.283185307179586
+    min_torso_height: -0.6
+    max_abs_pitch_rate: 40.0
+    stabilization_steps: 4
+    stabilization_pitch_rate: 6.0
     reference_runtime_seconds: 593.215199
     reference_robustness: 0.167646
-

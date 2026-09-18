@@ -92,6 +92,79 @@ combination, not a guarantee of bitwise equality on other systems.
 The full 100-seed check here covers STL-SVPIO only, not the baseline aggregates
 or MILP. Runtime depends on hardware and is not an exact-match criterion.
 
+## Half-Cheetah: MJX Command
+
+Use MJX with one solver iteration. The old runner's `generalized` default
+was inconsistent with the paper preset; the working-config note "Default
+works" alone is not sufficient to reconstruct this experiment. The launcher
+now passes the YAML settings explicitly, and the direct runner defaults to
+`--backend mjx --mj-iterations 1`. This also addresses the backend and
+reverse-mode startup issue identified in the
+[external reproduction update](https://github.com/wow-rao/stl-svpio-results#update--halfcheetah-backflip-reproduces-once-the-mjx-backend-is-used).
+
+```bash
+CUDA_VISIBLE_DEVICES=0 JAX_PLATFORMS=cuda uv run --frozen stl-svpio nonlinear \
+  --experiment halfcheetah_backflip --run
+```
+
+Omit `--run` to inspect the expanded command. The settings are horizon 200,
+one physics substep, 10 particles, 300 Stein steps, exponential step-size
+decay from `0.001` to `1e-5`, repulsion coefficient 0, uniform sampling,
+noise sigma 0.35, and path-integral temperature 0.8. Environment reset uses
+seed 0 and optimizer sampling uses seed 1000. The STL specification uses
+`logsumexp` temperature 500, terminal completion, rotation tolerance 0.40,
+and a final window of 8 steps. Gradients use reverse mode; the optional
+outer `--jit-command` is off, as in the original defaults.
+
+The MuJoCo solver is CG with 1 solver iteration and 1 line-search iteration.
+MJX with reverse-mode gradients requires a single solver iteration: the
+multi-iteration solver uses a dynamic loop that cannot be reverse-mode
+differentiated. The runner rejects incompatible settings before planning.
+
+The runner respects the caller's `CUDA_VISIBLE_DEVICES` and `MUJOCO_GL`
+(default rendering backend: EGL). It no longer forces GPU 1, writes an EGL
+driver configuration under `/usr/share`, or injects legacy XLA tuning/cache
+options. NVIDIA/EGL drivers must be installed separately for video rendering.
+The MJCF model is resolved relative to the installed package.
+
+The historical result reports robustness `0.167646` and runtime `593.215199`
+seconds, but does not include the execution configuration or software
+versions. Using the corrected MJX settings is not proof of reproducing that
+value on a new stack; compare robustness and satisfaction with tolerances.
+Repeated executions with identical settings and seeds on the same GPU can
+produce different optimized controls and robustness, not just differences
+between GPU models. A fixed seed does not guarantee a deterministic
+Half-Cheetah optimization. Record multiple runs rather than selecting only
+one favorable result. Result JSONs include settings, seeds, package versions,
+device information, and relevant environment variables. OpenXLA distinguishes
+[compilation-time autotuning variability from execution-time nondeterminism](https://openxla.org/xla/determinism);
+these repeated runs do not isolate which operation or stage causes a difference.
+
+### RTX 3070 Repeated Runs
+
+Three full-preset runs in separate processes on the same NVIDIA GeForce
+RTX 3070 used reset seed 0 and sampling seed 1000, with identical optimization
+settings and environment. The stack was JAX/JAXlib 0.10.1, Brax 0.14.2,
+MuJoCo/MJX 3.9.0, and stljax 1.1.3. Plot/video export was disabled; horizon,
+particle count, and optimization iterations were not reduced.
+
+| Repeat | STL robustness | STL satisfied | Runtime (seconds) |
+| --- | ---: | --- | ---: |
+| 1 | 0.437948823 | Yes | 199.47 |
+| 2 | -26.139793396 | No | 121.39 |
+| 3 | NaN (non-finite) | No | 121.11 |
+
+All three saved control arrays were finite, but the third rollout produced
+non-finite robustness. The first two control arrays differed, with a maximum
+absolute element difference of 2.0. Settings, seeds, software versions, and
+recorded environment variables matched, apart from output filenames.
+
+The corrected command executes the MJX optimization and can produce a
+satisfying result, but these repeats do not reproduce the reference robustness
+`0.167646` reliably. Neither exact scalar equality nor satisfaction on every
+execution is guaranteed. These three observations are not an estimate of a
+general success rate. The checks validate planning, not video rendering.
+
 ## What Seeds Control
 
 JAX uses explicit PRNG keys. Given the same code path and backend behavior, the random samples generated from `jax.random` keys are deterministic. See the official JAX random documentation:
@@ -100,7 +173,7 @@ JAX uses explicit PRNG keys. Given the same code path and backend behavior, the 
 
 ## What Seeds Do Not Control
 
-GPU execution can be nondeterministic even when pseudo-random streams are fixed. OpenXLA documents that GPU programs can be nondeterministic for operations including GEMMs/matrix multiplication, convolutions, scatter, select-and-scatter, and multi-headed attention:
+GPU execution can be nondeterministic even when pseudo-random streams are fixed. OpenXLA discusses nondeterministic GPU algorithms and lowerings for GEMMs/matrix multiplication, convolutions, scatter, and select-and-scatter:
 
 - <https://openxla.org/xla/determinism>
 
@@ -110,7 +183,7 @@ OpenXLA also notes that compilation can vary because autotuning may select diffe
 
 - Use CUDA for Table I reproduction; CPU execution can produce substantially different robustness.
 - Compare GPU point-mass results using satisfaction and robustness tolerances rather than assuming bitwise equality.
-- MJX Panda and Half-Cheetah runs involve nonlinear dynamics and contact-sensitive optimization; exact final trajectories may differ across GPUs, drivers, XLA versions, and autotuning state.
+- Panda and Half-Cheetah MJX runs involve nonlinear dynamics and contact-sensitive optimization; exact final trajectories may differ even between repeated runs on the same GPU, as well as across GPUs, drivers, XLA versions, and autotuning state.
 - Report robustness, satisfaction, runtime, software versions, GPU model, and command/config used.
 
 ## Optional Mitigation

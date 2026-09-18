@@ -49,10 +49,13 @@ Nonlinear MJX tasks:
 ```bash
 uv run stl-svpio nonlinear
 uv run stl-svpio nonlinear --experiment panda_goal_reach --run
-uv run stl-svpio nonlinear --experiment halfcheetah_backflip --run
+CUDA_VISIBLE_DEVICES=0 JAX_PLATFORMS=cuda uv run --frozen stl-svpio nonlinear --experiment halfcheetah_backflip --run
 ```
 
-The MJX jobs are long-running GPU experiments. Reference outputs are stored under `results/reference/`.
+These are long-running GPU experiments. Omit `--run` to print the command.
+Half-Cheetah settings are read from `configs/paper/nonlinear.yaml`, with MJX
+and one solver iteration; see [reproducibility notes](docs/reproducibility.md#half-cheetah-mjx-command).
+Reference outputs are stored under `results/reference/`.
 
 Optional MILP/PyTeLo/Gurobi baselines:
 

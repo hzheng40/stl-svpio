@@ -1,49 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 import json
 import math
 import os
 import time
-# Add an ICD config so that glvnd can pick up the Nvidia EGL driver.
-# This is usually installed as part of an Nvidia driver package, but the Colab
-# kernel doesn't install its driver via APT, and as a result the ICD is missing.
-# (https://github.com/NVIDIA/libglvnd/blob/master/src/EGL/icd_enumeration.md)
-NVIDIA_ICD_CONFIG_PATH = '/usr/share/glvnd/egl_vendor.d/10_nvidia.json'
-if not os.path.exists(NVIDIA_ICD_CONFIG_PATH):
-  with open(NVIDIA_ICD_CONFIG_PATH, 'w') as f:
-    f.write("""{
-    "file_format_version" : "1.0.0",
-    "ICD" : {
-        "library_path" : "libEGL_nvidia.so.0"
-    }
-}
-""")
-
-# Configure MuJoCo to use the EGL rendering backend (requires GPU)
-print('Setting environment variable to use GPU rendering:')
-os.environ["MUJOCO_GL"]="egl"
-
-try:
-  print('Checking that the installation succeeded:')
-  import mujoco
-  mujoco.MjModel.from_xml_string('<mujoco/>')
-except Exception as e:
-  raise e from RuntimeError(
-      'Something went wrong during installation. Check the shell output above '
-      'for more information.\n'
-      'If using a hosted Colab runtime, make sure you enable GPU acceleration '
-      'by going to the Runtime menu and selecting "Choose runtime type".')
-
-print('Installation successful.')
-
-# Tell XLA to use Triton GEMM, this improves steps/sec by ~30% on some GPUs
-xla_flags = os.environ.get('XLA_FLAGS', '')
-xla_flags += ' --xla_gpu_triton_gemm_any=True'
-os.environ['XLA_FLAGS'] = xla_flags
-os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = ".99"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+# Rendering defaults must not override the caller's GPU or driver setup.
+os.environ.setdefault("MUJOCO_GL", "egl")
+os.environ.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
 from pathlib import Path
 from typing import Any
 
@@ -53,9 +18,6 @@ import jax
 jax.config.update("jax_compilation_cache_dir", "/tmp/jax_cache")
 jax.config.update("jax_persistent_cache_min_entry_size_bytes", -1)
 jax.config.update("jax_persistent_cache_min_compile_time_secs", 0)
-jax.config.update(
-    "jax_persistent_cache_enable_xla_caches", "xla_gpu_per_fusion_autotune_cache_dir"
-)
 # jax.config.update("jax_enable_x64", True)
 # jax.config.update("jax_default_matmul_precision", "high")
 import jax.numpy as jnp
@@ -73,7 +35,7 @@ from stl_svpio._legacy_mppi import MPPIConfig, MPPIController, make_stl_cost_fn
 from stl_svpio.specifications import halfcheetah_backflip_spec
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run global-plan SVGD-MPPI on Brax HalfCheetah with STL backflip specification."
     )
@@ -81,13 +43,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--backend",
         choices=["mjx", "generalized", "spring", "positional"],
-        default="generalized",
+        default="mjx",
         help="Brax physics backend.",
     )
     parser.add_argument(
         "--mjcf-path",
         type=Path,
-        default=Path("src/stl_svpio/assets/half_cheetah/half_cheetah.xml"),
+        default=Path(__file__).resolve().parents[1] / "assets/half_cheetah/half_cheetah.xml",
         help="Path to HalfCheetah MJCF XML file.",
     )
     parser.add_argument(
@@ -105,7 +67,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--mj-iterations",
         type=int,
-        default=4,
+        default=1,
         help="MuJoCo solver iterations (lower is faster, less accurate).",
     )
     parser.add_argument(
@@ -262,7 +224,10 @@ def parse_args() -> argparse.Namespace:
         default="reverse",
         help="Autodiff mode for SVGD particle gradients.",
     )
-    return parser.parse_args()
+    args = parser.parse_args(argv)
+    if args.backend == "mjx" and args.svgd_grad_mode == "reverse" and args.mj_iterations != 1:
+        parser.error("MJX reverse-mode gradients require --mj-iterations 1; larger values use a nondifferentiable solver loop.")
+    return args
 
 
 def _planner_trace_from_data(data, bfoot_body_id: int, ffoot_body_id: int) -> jnp.ndarray:
@@ -421,12 +386,19 @@ def _save_run_results(
     final_robustness: float,
     stl_satisfied: bool,
     planning_executed: bool,
+    args: argparse.Namespace,
 ) -> None:
     payload = {
         "runtime_seconds": float(runtime_seconds),
         "final_stl_robustness": float(final_robustness),
         "stl_satisfied": bool(stl_satisfied),
         "planning_executed": bool(planning_executed),
+        "configuration": {key: str(value) if isinstance(value, Path) else value for key, value in vars(args).items()},
+        "sampling_seed": args.seed + 1000,
+        "backend": jax.default_backend(),
+        "devices": [device.device_kind for device in jax.devices()],
+        "versions": {name: importlib.metadata.version(name) for name in ("jax", "jaxlib", "brax", "mujoco", "mujoco-mjx", "stljax")},
+        "environment": {name: os.environ.get(name) for name in ("CUDA_VISIBLE_DEVICES", "JAX_PLATFORMS", "XLA_FLAGS", "MUJOCO_GL")},
     }
     results_path.parent.mkdir(parents=True, exist_ok=True)
     with results_path.open("w", encoding="utf-8") as f:
@@ -907,6 +879,7 @@ def main() -> None:
         final_robustness=final_rob,
         stl_satisfied=final_sat,
         planning_executed=planning_executed,
+        args=args,
     )
     print(f"saved run results: {args.results_path}")
 
